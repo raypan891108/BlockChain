@@ -1,0 +1,68 @@
+//捐贈合約
+pragma solidity >=0.5.12 <0.6.0;
+
+contract CharityFundraising{
+    
+    //發起者address 慈善機構address(payable)  發起者名字 慈善機構名字 開始時間
+    address public InitiatorAddress;
+    address payable public CharityAddress;
+    string public InitiatorName;
+    string public CharityName;
+    uint public startTime;
+    
+    //合約初始化
+
+
+//合約初始化
+//memory 需要時使用 不需要時不會被存取
+    constructor(string memory _InitiatorName,string memory _CharityName,address payable _CharityAddress) public {
+        //存入發起者address 慈善機構address(payable)  發起者名字 慈善機構名字 開始時間
+        InitiatorAddress = msg.sender; 
+        CharityAddress = _CharityAddress;
+        InitiatorName = _InitiatorName;
+        CharityName = _CharityName;
+        startTime = now;
+    }
+
+ //身分認證
+    modifier onlyOwner{
+        require(msg.sender == InitiatorAddress,"you are not Initiator!!");
+      //需求(目前使用者address == 發起者,不然跳出提示);
+        _;
+    }
+
+ //資料結構
+    struct sponsor{
+        //捐款者Address 捐款金額 捐款時間 
+        address sponsorAddress;
+        uint Donateprice;
+        uint DonateTime;
+    }
+    
+    //設定鍵值
+    mapping (address => sponsor) public sponsors;
+
+//Donate的函式需要有收款的功能
+    function donate() public payable{
+        require(msg.value >= 1); //捐款金額需大於1ether
+        if(sponsors[msg.sender].Donateprice == 0){ // if 捐款金額==0 (新成員)
+            sponsors[msg.sender] = sponsor({ // 輸入資料形成資料結構sponsor,以address為鍵值丟入sponors
+                sponsorAddress:msg.sender,
+                Donateprice: msg.value,
+                DonateTime: now
+            });
+        }else{
+            sponsors[msg.sender].Donateprice += msg.value; //將原本金額加上新增金額
+            sponsors[msg.sender].DonateTime = now; //紀錄捐款金額
+        }
+    }
+
+ //sendMoney函式(讓合約發起者可以將此合約內的金額轉給慈善金額)
+    function sendMoney() public onlyOwner{
+        CharityAddress.transfer(address(this).balance);
+    }
+    //constractBalance(可以讓大家查看餘額)
+    function constractBalance() public view returns(uint){
+        return address(this).balance;
+    }
+}
